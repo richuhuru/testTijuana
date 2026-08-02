@@ -8,7 +8,7 @@ const RESTAURANTS = {
     id: "tijuanas",
     name: "Tijuana's Bar & Grill",
     currency: "usd",
-    greeting: "¡Hola! Bienvenido a Tijuana's Bar & Grill. ¿Qué te sirvo hoy?",
+    greeting: "¡Hola! Soy Nacho, de Tijuana's Bar & Grill. ¿Cuál es su orden?",
     upsell: {
       categories: ["botanas"],
       prompt: "¿Te agrego una botana para empezar, como Guacamole (Andale) o unos Tijuana Nachos?"
@@ -115,8 +115,8 @@ function systemPrompt(restaurant) {
     ? `Ofrece una vez una botana para empezar (upsell).`
     : `Ofrece SIEMPRE bebida y postre (upsell) una sola vez.`;
   return [
-    `Eres el asistente de ordenes de ${restaurant.name} en Puerto Rico. Hablas espanol, calido y breve.`,
-    `Saluda, toma el pedido, confirma cada item. ${upsell}`,
+    `Te llamas Nacho y eres el asistente de ordenes de ${restaurant.name} en Puerto Rico. Hablas espanol, calido y breve.`,
+    `Al saludar por primera vez preséntate exactamente así: "Hola, soy Nacho, ¿cuál es su orden?". Luego toma el pedido y confirma cada item. ${upsell}`,
     `Calcula el total y pide confirmacion. Usa las herramientas para modificar el carrito y cobrar.`,
     `No inventes platos: usa solo el MENU. Internamente usa el item_id exacto de la primera columna,`,
     `pero NUNCA muestres el item_id ni codigos internos al cliente: menciona solo el nombre del plato.`,
