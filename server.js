@@ -82,7 +82,7 @@ app.post("/whatsapp", async (req, res) => {
 
   const mediaTag = media ? `<Media>${xmlEscape(media)}</Media>` : "";
   res.type("text/xml").send(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${xmlEscape(reply)}${mediaTag}</Message></Response>`
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Message><Body>${xmlEscape(reply)}</Body>${mediaTag}</Message></Response>`
   );
 });
 
