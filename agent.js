@@ -50,6 +50,11 @@ async function executeTool(session, restaurant, name, args) {
       session.pendingMedia = it.image;
       return { ok: true, sent: it.name };
     }
+    case "set_address": {
+      session.address = (args.address || "").trim();
+      session.awaitingAddress = false;
+      return { ok: true, address: session.address };
+    }
     default:
       return { ok: false, error: `tool desconocida: ${name}` };
   }
@@ -112,6 +117,12 @@ function upsellSatisfied(session, restaurant) {
 }
 
 async function mockAgent(session, restaurant, userText) {
+  if (session.awaitingAddress && userText.trim() && !wantsConfirm(userText) && !detectFulfillment(userText)) {
+    session.address = userText.trim();
+    session.awaitingAddress = false;
+    return `Anotado. Entregaremos en: ${session.address}.\n\n${cartSummary(session.cart)}\n\n¿Confirmo tu pedido?`;
+  }
+
   const items = mockDetectItems(userText, restaurant);
   const addedNames = [];
   for (const it of items) {
@@ -126,10 +137,14 @@ async function mockAgent(session, restaurant, userText) {
     if (!session.fulfillment) {
       return `Antes de confirmar: ¿la orden es para llevar o para recoger?`;
     }
+    if (session.fulfillment === "para llevar" && !session.address) {
+      session.awaitingAddress = true;
+      return `¿A qué dirección la enviamos?`;
+    }
     const pay = await executeTool(session, restaurant, "create_payment", {});
     await executeTool(session, restaurant, "place_order", {});
     const total = cartTotal(session.cart).toFixed(2);
-    return `¡Perfecto! Tu total es $${total} (${session.fulfillment}).\nPaga aqui: ${pay.url}\nYa enviamos tu orden a la cocina de ${restaurant.name}. ¡Gracias!`;
+    return `¡Perfecto! Tu total es $${total} (${session.fulfillment}${session.address ? " a " + session.address : ""}).\nPaga aqui: ${pay.url}\nYa enviamos tu orden a la cocina de ${restaurant.name}. ¡Gracias!`;
   }
 
   const parts = [];
@@ -144,6 +159,9 @@ async function mockAgent(session, restaurant, userText) {
     parts.push(`\n${upsellPrompt}`);
   } else if (session.cart.length && !session.fulfillment) {
     parts.push(`\n¿La orden es para llevar o para recoger?`);
+  } else if (session.cart.length && session.fulfillment === "para llevar" && !session.address) {
+    session.awaitingAddress = true;
+    parts.push(`\n¿A qué dirección la enviamos?`);
   } else {
     parts.push(`\n¿Deseas algo mas o confirmo tu pedido?`);
   }

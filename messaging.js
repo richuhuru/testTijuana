@@ -30,6 +30,7 @@ async function notifyKitchen(session, restaurant) {
     `NUEVA ORDEN — ${restaurant.name}`,
     `Cliente: ${session.id}`,
     `Tipo: ${session.fulfillment || "(no indicado)"}`,
+    ...(session.fulfillment === "para llevar" ? [`Direccion: ${session.address || "(pendiente)"}`] : []),
     ...lines,
     `Total: $${total}`,
     session.paymentUrl ? `Pago: ${session.paymentUrl}` : "Pago: pendiente"

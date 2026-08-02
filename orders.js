@@ -14,6 +14,8 @@ function getSession(sessionId, restaurantId) {
       upsold: false,
       fulfillment: null,   // 'para llevar' | 'para recoger'
       pendingMedia: null,  // URL de imagen a enviar en la proxima respuesta
+      address: null,       // direccion de entrega (si es para llevar)
+      awaitingAddress: false,
       paymentUrl: null,
       placed: false,
       createdAt: Date.now()
