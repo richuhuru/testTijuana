@@ -57,6 +57,19 @@ app.post("/whatsapp", async (req, res) => {
   }
   const inbound = hasLoc ? "__LOCATION__" : body;
 
+  // Boton/frase "Ver menu": responder con el link oficial del menu (deterministico)
+  const nb = (body || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (!hasLoc && /^(ver\s+(el\s+)?menu|menu|ver\s+(la\s+)?carta|carta|ver\s+todo\s+el\s+menu)$/.test(nb)) {
+    const link = "Aquí tienes nuestro menú completo 👉 https://www.tijuanasbarandgrill.com/es/menu/\n\nCuando decidas, dime el nombre del plato y lo agrego. 😊";
+    if (sender.ready()) {
+      res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+      sender.sendText(from, link).catch(e => console.error("menu link send:", e.message));
+    } else {
+      res.type("text/xml").send(`<?xml version="1.0" encoding="UTF-8"?><Response><Message><Body>${xmlEscape(link)}</Body></Message></Response>`);
+    }
+    return;
+  }
+
   const reply = await handleTurn(session, restaurant, inbound);
 
   const media = session.pendingMedia; session.pendingMedia = null;
