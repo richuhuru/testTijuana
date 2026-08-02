@@ -13,6 +13,7 @@ const { WebSocketServer } = require("ws");
 const { getRestaurant } = require("./menus");
 const { getSession } = require("./orders");
 const { handleTurn } = require("./agent");
+const sender = require("./whatsappSender");
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -58,8 +59,27 @@ app.post("/whatsapp", async (req, res) => {
 
   const reply = await handleTurn(session, restaurant, inbound);
 
-  const media = session.pendingMedia;
-  session.pendingMedia = null;
+  const media = session.pendingMedia; session.pendingMedia = null;
+  const opts = session.pendingOptions; session.pendingOptions = null;
+
+  if (sender.ready()) {
+    // Modo interactivo: responder vacio y enviar por REST (permite botones tactiles)
+    res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+    (async () => {
+      try {
+        if (opts && opts.options && opts.options.length && opts.options.length <= 3) {
+          await sender.sendButtons(from, reply, opts.options);
+        } else {
+          await sender.sendText(from, reply, media);
+        }
+      } catch (e) {
+        console.error("interactive send error:", e.message);
+        try { await sender.sendText(from, reply, media); } catch (_) {}
+      }
+    })();
+    return;
+  }
+
   const mediaTag = media ? `<Media>${xmlEscape(media)}</Media>` : "";
   res.type("text/xml").send(
     `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${xmlEscape(reply)}${mediaTag}</Message></Response>`

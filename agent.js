@@ -50,6 +50,11 @@ async function executeTool(session, restaurant, name, args) {
       session.pendingMedia = it.image;
       return { ok: true, sent: it.name };
     }
+    case "present_options": {
+      const options = Array.isArray(args.options) ? args.options.map(String).slice(0, 10) : [];
+      session.pendingOptions = { prompt: args.prompt || "", options };
+      return { ok: true, options };
+    }
     case "set_address": {
       session.address = (args.address || "").trim();
       session.awaitingAddress = false;
