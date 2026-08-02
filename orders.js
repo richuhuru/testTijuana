@@ -13,6 +13,7 @@ function getSession(sessionId, restaurantId) {
       history: [],       // historial para el LLM
       upsold: false,
       fulfillment: null,   // 'para llevar' | 'para recoger'
+      pendingMedia: null,  // URL de imagen a enviar en la proxima respuesta
       paymentUrl: null,
       placed: false,
       createdAt: Date.now()

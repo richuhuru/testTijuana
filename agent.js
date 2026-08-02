@@ -44,6 +44,12 @@ async function executeTool(session, restaurant, name, args) {
       session.fulfillment = ft.includes("recog") ? "para recoger" : "para llevar";
       return { ok: true, fulfillment: session.fulfillment };
     }
+    case "send_photo": {
+      const it = restaurant.menu.find(m => m.id === args.item_id);
+      if (!it || !it.image) return { ok: false, error: "Ese plato no tiene foto." };
+      session.pendingMedia = it.image;
+      return { ok: true, sent: it.name };
+    }
     default:
       return { ok: false, error: `tool desconocida: ${name}` };
   }

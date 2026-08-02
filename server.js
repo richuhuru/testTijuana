@@ -51,8 +51,11 @@ app.post("/whatsapp", async (req, res) => {
 
   const reply = await handleTurn(session, restaurant, body);
 
+  const media = session.pendingMedia;
+  session.pendingMedia = null;
+  const mediaTag = media ? `<Media>${xmlEscape(media)}</Media>` : "";
   res.type("text/xml").send(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${xmlEscape(reply)}</Message></Response>`
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${xmlEscape(reply)}${mediaTag}</Message></Response>`
   );
 });
 

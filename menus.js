@@ -101,12 +101,30 @@ const RESTAURANTS = {
   }
 };
 
+const IMG_BASE = "https://www.tijuanasbarandgrill.com/wp-content/uploads/2018/12/";
+const IMAGES = {
+  tj4_crema_azteca:"Crema-Azteca-web-455x455.jpg", tj7_la_frontera:"Ensalada-la-Frontera7-WEB-455x455.jpg",
+  tj9_tj_dip:"Tijuanas-Dip-web-455x455.jpg", tj10_a_la_charola:"A-la-Charola-web-455x455.jpg",
+  tj12_nachos:"Tijuanas-Nachos-web-455x455.jpg", tj17_ceviche:"Ceviche-web-455x455.jpg",
+  tj19_nuggets_dorado:"Nuggets-de-Dorado-web-455x455.jpg", tj20_shrimp_moctezuma:"Camarones-Moctezuma-web-455x455.jpg",
+  tj22_flautas:"Flautas-web-455x455.jpg", tj23_fiesta_mexicana:"Fiesta-Mexicana-web-455x455.jpg",
+  tj35_cuernavaca:"Cuernavaca-web-455x455.jpg", tj36_martijuana:"Martijuana-web-455x455.jpg",
+  tj38_tijuana_burrito:"Tijuanas-Burrito-web-455x455.jpg", tj41_mexican_wrap:"Mexican-Wrap-web-455x455.jpg",
+  tj44_ench_mole:"Enchiladas-de-Mole-Poblano-web-455x455.jpg", tj50_fajitas_trad:"Fajitas-Tradicionales-Mixtas-web-455x455.jpg",
+  tj51_el_volcan:"El-Volcan-web-455x455.jpg", tj52_puntas_filete:"Puntas-de-Filete-web-455x455.jpg",
+  tj56_la_margarita:"La-Margarita-web-455x455.jpg", tj57_pechuga_chipotle:"Pechuga-al-Chipotle-web-455x455.jpg",
+  tj64_veggie_mahi:"Veggie-Mahi-web-455x455.jpg", tj66_chilangos_shrimp:"Camarones-de-Chilangos-web-455x455.jpg",
+  tj67_cancun_shrimp:"Camarones-Cancun-web-455x455.jpg", tj68_tampiquena:"Tampiquena-web-455x455.jpg",
+  tj69_pelangocha:"Pelangocha-web-455x455.jpg"
+};
+Object.values(RESTAURANTS).forEach(r => r.menu.forEach(it => { if (IMAGES[it.id]) it.image = IMG_BASE + IMAGES[it.id]; }));
+
 function getRestaurant(id) {
   return RESTAURANTS[(id || "").toLowerCase()] || RESTAURANTS.tijuanas;
 }
 
 function menuLine(item) {
-  return `${item.id} | ${item.name} | $${item.price.toFixed(2)}`;
+  return `${item.id} | ${item.name} | $${item.price.toFixed(2)}${item.image ? " (foto)" : ""}`;
 }
 
 function systemPrompt(restaurant) {
@@ -123,6 +141,8 @@ function systemPrompt(restaurant) {
     `pero NUNCA muestres el item_id ni codigos internos al cliente: menciona solo el nombre del plato.`,
     `No uses formato Markdown ni enlaces entre corchetes; escribe la URL de pago tal cual, en texto plano.`,
     `Saluda solo la primera vez; no repitas el saludo en cada mensaje.`,
+    `Cuando ofrezcas opciones, NUMERALAS (1, 2, 3, 4...) y recuerda a que item corresponde cada numero; si el cliente responde con numeros (ej. '1' o '1,3'), interpretalos segun tu ultima lista y agrega esos items.`,
+    `Los items marcados con (foto) tienen imagen: usa send_photo con su item_id para enviar la foto cuando el cliente la pida o para promover una especialidad. Maximo 1 foto por mensaje.`,
     `Antes de cobrar, pregunta SIEMPRE si la orden es 'para llevar' o 'para recoger' y registra la respuesta con set_fulfillment; inclúyela en el resumen.`,
     `Cuando el cliente confirme, usa create_payment para generar el enlace de pago y luego place_order.`,
     ``,
@@ -143,6 +163,8 @@ const TOOLS = [
     parameters: { type: "object", properties: { item_id: { type: "string" } }, required: ["item_id"] } },
   { name: "get_order", description: "Devuelve el pedido actual y el total.",
     parameters: { type: "object", properties: {} } },
+  { name: "send_photo", description: "Envia al cliente la foto de un plato (solo items marcados con (foto)).",
+    parameters: { type: "object", properties: { item_id: { type: "string" } }, required: ["item_id"] } },
   { name: "set_fulfillment", description: "Registra si la orden es para llevar o para recoger.",
     parameters: { type: "object", properties: { type: { type: "string", enum: ["para llevar", "para recoger"] } }, required: ["type"] } },
   { name: "create_payment", description: "Genera un enlace de pago (Stripe) por el total del pedido.",
