@@ -10,8 +10,8 @@ const RESTAURANTS = {
     currency: "usd",
     greeting: "¡Hola! Soy Nacho, de Tijuana's Bar & Grill. ¿Cuál es su orden?",
     upsell: {
-      categories: ["botanas"],
-      prompt: "¿Te agrego una botana para empezar, como Guacamole (Andale) o unos Tijuana Nachos?"
+      categories: ["botanas", "bebidas"],
+      prompt: "¿Te agrego una bebida o una botana para empezar?"
     },
     menu: [
       // --- SOPAS ---
@@ -96,7 +96,20 @@ const RESTAURANTS = {
       { id: "tj70_quesadillita",    name: "Quesadillita de pollo",          keywords: ["quesadillita", "quesadillita de pollo"], price: 7.00, category: "chaparritos" },
       { id: "tj71_mini_burritos",   name: "Mini burritos de res o pollo",   keywords: ["mini burritos", "mini burrito"], price: 9.00, category: "chaparritos" },
       { id: "tj72_deditos_pollo",   name: "Deditos de pollo con papas",     keywords: ["deditos de pollo", "deditos", "chicken fingers"], price: 9.00, category: "chaparritos" },
-      { id: "tj73_arroz_pollo",     name: "Arroz, pollo a la mexicana y amarillos", keywords: ["arroz pollo", "arroz con pollo"], price: 8.00, category: "chaparritos" }
+      { id: "tj73_arroz_pollo",     name: "Arroz, pollo a la mexicana y amarillos", keywords: ["arroz pollo", "arroz con pollo"], price: 8.00, category: "chaparritos" },
+      // --- BEBIDAS (precios estimados, ajustar) ---
+      { id: "beb_refresco",   name: "Refresco (Coca, Sprite, etc.)",   keywords: ["refresco", "soda", "coca", "coca cola", "cocacola", "sprite", "pepsi", "fanta"], price: 2.50, category: "bebidas" },
+      { id: "beb_agua",       name: "Agua embotellada",                keywords: ["agua", "agua embotellada", "botella de agua"], price: 1.75, category: "bebidas" },
+      { id: "beb_agua_fresca",name: "Agua fresca (horchata/jamaica)",  keywords: ["agua fresca", "horchata", "jamaica", "aguas frescas"], price: 3.50, category: "bebidas" },
+      { id: "beb_limonada",   name: "Limonada",                        keywords: ["limonada"], price: 3.50, category: "bebidas" },
+      { id: "beb_te",         name: "Té frío",                         keywords: ["te frio", "iced tea", "te helado"], price: 2.75, category: "bebidas" },
+      { id: "beb_cafe",       name: "Café",                            keywords: ["cafe", "cafecito"], price: 2.50, category: "bebidas" },
+      { id: "beb_cerveza",    name: "Cerveza",                         keywords: ["cerveza", "beer", "medalla", "corona", "modelo"], price: 5.00, category: "bebidas" },
+      { id: "beb_margarita",  name: "Margarita (cóctel)",              keywords: ["margarita coctel", "coctel de margarita", "margarita de la casa", "trago margarita"], price: 8.00, category: "bebidas" },
+      // --- POSTRES (precios estimados, ajustar) ---
+      { id: "post_flan",      name: "Flan",                            keywords: ["flan"], price: 5.00, category: "postres" },
+      { id: "post_churros",   name: "Churros",                         keywords: ["churros", "churro"], price: 5.00, category: "postres" },
+      { id: "post_sopapillas",name: "Sopapillas",                      keywords: ["sopapillas", "sopaipillas"], price: 5.00, category: "postres" }
     ]
   }
 };
