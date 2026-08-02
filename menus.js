@@ -8,6 +8,7 @@ const RESTAURANTS = {
     id: "tijuanas",
     name: "Tijuana's Bar & Grill",
     currency: "usd",
+    deliveryMinimum: 25,
     greeting: "¡Hola! Soy Nacho, de Tijuana's Bar & Grill. ¿Cuál es su orden?",
     upsell: {
       categories: ["botanas", "bebidas"],
@@ -157,6 +158,7 @@ function systemPrompt(restaurant) {
     `Cuando ofrezcas hasta 3 opciones, llama present_options con {prompt, options:[textos cortos, max 20 caracteres]} para que el cliente las TOQUE; incluye igual esas opciones en tu texto. Para mas de 3 opciones, usa una lista NUMERADA (1,2,3,4...). Si el cliente responde con un numero o toca un boton, interpreta segun tu ultima lista.`,
     `Los items marcados con (foto) tienen imagen: usa send_photo con su item_id para enviar la foto cuando el cliente la pida o para promover una especialidad. Maximo 1 foto por mensaje.`,
     `Antes de cobrar, pregunta SIEMPRE si la orden es 'para llevar' o 'para recoger' y registra la respuesta con set_fulfillment.`,
+    `El pedido minimo para 'para llevar' (entrega) es $25.00. Si es para llevar y el total es menor a $25, NO confirmes ni cobres: dile cuanto le falta para llegar a $25 y ofrece agregar algo (o cambiar a 'para recoger', que no tiene minimo).`,
     `Si es 'para llevar' (entrega a domicilio): pide que comparta su UBICACION por WhatsApp (Adjuntar -> Ubicacion) para tener el punto exacto. Cuando la reciba el sistema, pide en una linea el apto/piso/referencia y un telefono de contacto, registralos con set_delivery. Luego REPITE (ubicacion + referencia + telefono) y pide confirmacion antes de cobrar. Si el cliente no puede compartir ubicacion, acepta la direccion por texto con set_delivery. Si es 'para recoger', no pidas direccion.`,
     `Cuando el cliente confirme, usa create_payment para generar el enlace de pago y luego place_order.`,
     ``,

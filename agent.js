@@ -31,10 +31,19 @@ async function executeTool(session, restaurant, name, args) {
     }
     case "get_order":
       return { ok: true, order: session.cart, total: cartTotal(session.cart), summary: cartSummary(session.cart) };
-    case "create_payment":
+    case "create_payment": {
+      const min = restaurant.deliveryMinimum || 0;
+      if (session.fulfillment === "para llevar" && cartTotal(session.cart) < min) {
+        return { ok: false, error: `El pedido minimo para entrega es $${min.toFixed(2)}. Faltan $${(min - cartTotal(session.cart)).toFixed(2)}.` };
+      }
       return createPaymentLink(session, restaurant);
+    }
     case "place_order": {
       if (!session.cart.length) return { ok: false, error: "El pedido esta vacio." };
+      const minP = restaurant.deliveryMinimum || 0;
+      if (session.fulfillment === "para llevar" && cartTotal(session.cart) < minP) {
+        return { ok: false, error: `El pedido minimo para entrega es $${minP.toFixed(2)}.` };
+      }
       await notifyKitchen(session, restaurant);
       session.placed = true;
       return { ok: true, placed: true, total: cartTotal(session.cart) };
@@ -157,6 +166,11 @@ async function mockAgent(session, restaurant, userText) {
     if (session.fulfillment === "para llevar" && !(session.geo || session.address)) {
       session.awaitingAddress = true;
       return `Para la entrega, compárteme tu ubicación 📍 (Adjuntar → Ubicación) o escribe tu dirección.`;
+    }
+    const minD = restaurant.deliveryMinimum || 0;
+    if (session.fulfillment === "para llevar" && cartTotal(session.cart) < minD) {
+      const falta = (minD - cartTotal(session.cart)).toFixed(2);
+      return `El pedido mínimo para entrega es $${minD.toFixed(2)} y tu total es $${cartTotal(session.cart).toFixed(2)}. Te faltan $${falta}. ¿Deseas agregar algo más, o lo cambiamos a "para recoger"?`;
     }
     const pay = await executeTool(session, restaurant, "create_payment", {});
     await executeTool(session, restaurant, "place_order", {});
