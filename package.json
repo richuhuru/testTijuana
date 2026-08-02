@@ -1,0 +1,21 @@
+{
+  "name": "uts-comunica-backend",
+  "version": "1.0.0",
+  "description": "UTS Comunica — Agente de ordenes con IA para restaurantes sobre Twilio (WhatsApp + Voz Conversation Relay).",
+  "main": "server.js",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "MOCK_LLM=1 node server.js",
+    "check": "node --check server.js && node --check menus.js && node --check llm.js && node --check orders.js && node --check payments.js && node --check messaging.js && node --check agent.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "stripe": "^16.2.0",
+    "twilio": "^5.2.2",
+    "ws": "^8.17.1"
+  },
+  "author": "Uhuru Tech Services",
+  "license": "UNLICENSED"
+}

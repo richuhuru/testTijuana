@@ -1,0 +1,15 @@
+# render.yaml — Blueprint de Render para UTS Comunica.
+# Al conectar el repo, Render detecta este archivo y crea el servicio web.
+services:
+  - type: web
+    name: uts-comunica
+    runtime: node
+    plan: free            # cambia a "starter" para produccion (no se duerme)
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: MOCK_LLM      # 1 = prueba sin claves; quitar en produccion
+        value: "1"
+      - key: RESTAURANT_ID
+        value: tijuanas
