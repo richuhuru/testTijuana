@@ -29,6 +29,7 @@ async function notifyKitchen(session, restaurant) {
   const body = [
     `NUEVA ORDEN — ${restaurant.name}`,
     `Cliente: ${session.id}`,
+    `Tipo: ${session.fulfillment || "(no indicado)"}`,
     ...lines,
     `Total: $${total}`,
     session.paymentUrl ? `Pago: ${session.paymentUrl}` : "Pago: pendiente"

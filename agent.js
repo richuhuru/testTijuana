@@ -39,6 +39,11 @@ async function executeTool(session, restaurant, name, args) {
       session.placed = true;
       return { ok: true, placed: true, total: cartTotal(session.cart) };
     }
+    case "set_fulfillment": {
+      const ft = (args.type || "").toLowerCase();
+      session.fulfillment = ft.includes("recog") ? "para recoger" : "para llevar";
+      return { ok: true, fulfillment: session.fulfillment };
+    }
     default:
       return { ok: false, error: `tool desconocida: ${name}` };
   }
@@ -84,6 +89,13 @@ function wantsConfirm(text) {
   return /(confirm|pagar|paga|listo|eso es todo|es todo|nada mas|ya esta|checkout|cobrar)/i.test(normalize(text));
 }
 
+function detectFulfillment(text) {
+  const n = normalize(text);
+  if (/recog|pick ?up|recojo|paso a buscar/.test(n)) return "para recoger";
+  if (/para llevar|llevar|to ?go|para ir|delivery|entrega|a domicilio/.test(n)) return "para llevar";
+  return null;
+}
+
 function upsellSatisfied(session, restaurant) {
   const cats = (restaurant.upsell && restaurant.upsell.categories) || [];
   if (!cats.length) return true;
@@ -101,11 +113,17 @@ async function mockAgent(session, restaurant, userText) {
     if (r.ok) addedNames.push(r.added);
   }
 
+  const ff = detectFulfillment(userText);
+  if (ff) session.fulfillment = ff;
+
   if (wantsConfirm(userText) && session.cart.length) {
+    if (!session.fulfillment) {
+      return `Antes de confirmar: ¿la orden es para llevar o para recoger?`;
+    }
     const pay = await executeTool(session, restaurant, "create_payment", {});
     await executeTool(session, restaurant, "place_order", {});
     const total = cartTotal(session.cart).toFixed(2);
-    return `¡Perfecto! Tu total es $${total}.\nPaga aqui: ${pay.url}\nYa enviamos tu orden a la cocina de ${restaurant.name}. ¡Gracias!`;
+    return `¡Perfecto! Tu total es $${total} (${session.fulfillment}).\nPaga aqui: ${pay.url}\nYa enviamos tu orden a la cocina de ${restaurant.name}. ¡Gracias!`;
   }
 
   const parts = [];
@@ -118,6 +136,8 @@ async function mockAgent(session, restaurant, userText) {
   if (!session.upsold && session.cart.length && !upsellSatisfied(session, restaurant)) {
     session.upsold = true;
     parts.push(`\n${upsellPrompt}`);
+  } else if (session.cart.length && !session.fulfillment) {
+    parts.push(`\n¿La orden es para llevar o para recoger?`);
   } else {
     parts.push(`\n¿Deseas algo mas o confirmo tu pedido?`);
   }

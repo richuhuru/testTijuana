@@ -12,6 +12,7 @@ function getSession(sessionId, restaurantId) {
       cart: [],          // { item_id, name, qty, price, size, notes }
       history: [],       // historial para el LLM
       upsold: false,
+      fulfillment: null,   // 'para llevar' | 'para recoger'
       paymentUrl: null,
       placed: false,
       createdAt: Date.now()
