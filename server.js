@@ -71,13 +71,13 @@ app.post("/whatsapp", async (req, res) => {
         // ofrece las categorias como lista tocable, sin que el cliente las pida.
         let eff = opts;
         if ((!eff || !eff.options || !eff.options.length) && session.cart.length === 0 && !session.placed) {
-          eff = { options: ["Tacos", "Quesadillas", "Burritos", "Fajitas", "Enchiladas", "Especialidades", "Botanas", "Bebidas", "Postres", "Ver todo el menu"] };
+          eff = { options: ["Ver menú", "Especialidades", "Bebidas"] };
         }
         if (eff && eff.options && eff.options.length >= 1 && eff.options.length <= 3) {
-          await sender.sendButtons(from, reply, eff.options);
-        } else if (eff && eff.options && eff.options.length > 3) {
-          await sender.sendList(from, reply, eff.options);
+          await sender.sendButtons(from, reply, eff.options.slice(0, 3));
         } else {
+          // Mas de 3 opciones: enviar como texto (el reply ya las lista numeradas).
+          // Las listas (list-picker) no son fiables en el sandbox, por eso no se usan.
           await sender.sendText(from, reply, media);
         }
       } catch (e) {
