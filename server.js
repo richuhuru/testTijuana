@@ -67,8 +67,10 @@ app.post("/whatsapp", async (req, res) => {
     res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
     (async () => {
       try {
-        if (opts && opts.options && opts.options.length && opts.options.length <= 3) {
+        if (opts && opts.options && opts.options.length >= 1 && opts.options.length <= 3) {
           await sender.sendButtons(from, reply, opts.options);
+        } else if (opts && opts.options && opts.options.length > 3) {
+          await sender.sendList(from, reply, opts.options);
         } else {
           await sender.sendText(from, reply, media);
         }

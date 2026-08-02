@@ -63,4 +63,43 @@ async function sendButtons(to, body, options) {
   return j;
 }
 
-module.exports = { ready, sendText, sendButtons };
+// Lista tocable (list-picker), hasta 10 items en sesion
+const listTplCache = {};
+async function ensureListTemplate(n) {
+  if (listTplCache[n]) return listTplCache[n];
+  const items = [];
+  for (let i = 0; i < n; i++) items.push({ item: `{{${i + 2}}}`, id: `i${i + 1}`, description: "" });
+  const payload = {
+    friendly_name: `uts_list_${n}`,
+    language: "es",
+    variables: {},
+    types: { "twilio/list-picker": { body: "{{1}}", button: "Ver opciones", items } }
+  };
+  const res = await fetch("https://content.twilio.com/v1/Content", {
+    method: "POST",
+    headers: { Authorization: authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const j = await res.json();
+  if (res.status >= 300) throw new Error("ensureListTemplate: " + JSON.stringify(j));
+  listTplCache[n] = j.sid;
+  return j.sid;
+}
+
+async function sendList(to, body, options) {
+  const opts = options.slice(0, 10);
+  const n = opts.length;
+  const sid = await ensureListTemplate(n);
+  const vars = { "1": body || "Elige una opción:" };
+  opts.forEach((o, i) => { vars[String(i + 2)] = String(o).slice(0, 24); });
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${SID}/Messages.json`, {
+    method: "POST",
+    headers: { Authorization: authHeader, "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ From: FROM, To: to, ContentSid: sid, ContentVariables: JSON.stringify(vars) })
+  });
+  const j = await res.json();
+  if (res.status >= 300) throw new Error("sendList: " + JSON.stringify(j));
+  return j;
+}
+
+module.exports = { ready, sendText, sendButtons, sendList };
