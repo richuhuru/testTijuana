@@ -49,7 +49,14 @@ app.post("/whatsapp", async (req, res) => {
   const restaurant = getRestaurant(process.env.RESTAURANT_ID);
   const session = getSession(from, restaurant.id);
 
-  const reply = await handleTurn(session, restaurant, body);
+  // Ubicacion compartida por WhatsApp (Adjuntar -> Ubicacion)
+  const hasLoc = req.body.Latitude && req.body.Longitude;
+  if (hasLoc) {
+    session.geo = { lat: req.body.Latitude, lng: req.body.Longitude, address: req.body.Address || "" };
+  }
+  const inbound = hasLoc ? "__LOCATION__" : body;
+
+  const reply = await handleTurn(session, restaurant, inbound);
 
   const media = session.pendingMedia;
   session.pendingMedia = null;

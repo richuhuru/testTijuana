@@ -14,7 +14,9 @@ function getSession(sessionId, restaurantId) {
       upsold: false,
       fulfillment: null,   // 'para llevar' | 'para recoger'
       pendingMedia: null,  // URL de imagen a enviar en la proxima respuesta
-      address: null,       // direccion de entrega (si es para llevar)
+      address: null,       // referencia/direccion en texto (si es para llevar)
+      geo: null,           // { lat, lng, address } del pin de WhatsApp
+      phone: null,         // telefono de contacto
       awaitingAddress: false,
       paymentUrl: null,
       placed: false,

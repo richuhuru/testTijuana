@@ -55,6 +55,12 @@ async function executeTool(session, restaurant, name, args) {
       session.awaitingAddress = false;
       return { ok: true, address: session.address };
     }
+    case "set_delivery": {
+      if (args.reference != null) session.address = String(args.reference).trim();
+      if (args.phone != null) session.phone = String(args.phone).trim();
+      session.awaitingAddress = false;
+      return { ok: true, reference: session.address, phone: session.phone };
+    }
     default:
       return { ok: false, error: `tool desconocida: ${name}` };
   }
@@ -117,10 +123,16 @@ function upsellSatisfied(session, restaurant) {
 }
 
 async function mockAgent(session, restaurant, userText) {
-  if (session.awaitingAddress && userText.trim() && !wantsConfirm(userText) && !detectFulfillment(userText)) {
+  if (userText === "__LOCATION__") {
+    session.awaitingAddress = true;
+    return `¡Ubicación recibida! 📍 ¿Me das el apto/piso/referencia y un teléfono de contacto? (en una línea)`;
+  }
+  if (session.awaitingAddress && userText.trim() && !wantsConfirm(userText) && !detectFulfillment(userText) && userText !== "__LOCATION__") {
     session.address = userText.trim();
+    const ph = (userText.match(/\+?\d[\d\s-]{6,}\d/) || [])[0];
+    if (ph) session.phone = ph.trim();
     session.awaitingAddress = false;
-    return `Anotado. Entregaremos en: ${session.address}.\n\n${cartSummary(session.cart)}\n\n¿Confirmo tu pedido?`;
+    return `Anotado: ${session.address}.\n\n${cartSummary(session.cart)}\n\n¿Confirmo tu pedido?`;
   }
 
   const items = mockDetectItems(userText, restaurant);
@@ -137,9 +149,9 @@ async function mockAgent(session, restaurant, userText) {
     if (!session.fulfillment) {
       return `Antes de confirmar: ¿la orden es para llevar o para recoger?`;
     }
-    if (session.fulfillment === "para llevar" && !session.address) {
+    if (session.fulfillment === "para llevar" && !(session.geo || session.address)) {
       session.awaitingAddress = true;
-      return `¿A qué dirección la enviamos?`;
+      return `Para la entrega, compárteme tu ubicación 📍 (Adjuntar → Ubicación) o escribe tu dirección.`;
     }
     const pay = await executeTool(session, restaurant, "create_payment", {});
     await executeTool(session, restaurant, "place_order", {});
@@ -159,9 +171,9 @@ async function mockAgent(session, restaurant, userText) {
     parts.push(`\n${upsellPrompt}`);
   } else if (session.cart.length && !session.fulfillment) {
     parts.push(`\n¿La orden es para llevar o para recoger?`);
-  } else if (session.cart.length && session.fulfillment === "para llevar" && !session.address) {
+  } else if (session.cart.length && session.fulfillment === "para llevar" && !(session.geo || session.address)) {
     session.awaitingAddress = true;
-    parts.push(`\n¿A qué dirección la enviamos?`);
+    parts.push(`\nPara la entrega, compárteme tu ubicación 📍 (Adjuntar → Ubicación) o escribe tu dirección.`);
   } else {
     parts.push(`\n¿Deseas algo mas o confirmo tu pedido?`);
   }
@@ -244,14 +256,16 @@ async function llmAgent(session, restaurant, userText) {
 // ---------- Entrada publica ----------
 async function handleTurn(session, restaurant, userText) {
   const useMock = process.env.MOCK_LLM === "1" || !process.env.LLM_API_KEY;
+  const isLoc = userText === "__LOCATION__";
+  const llmText = isLoc ? "He compartido mi ubicación por WhatsApp (pin GPS)." : userText;
   let reply;
   try {
-    reply = useMock ? await mockAgent(session, restaurant, userText) : await llmAgent(session, restaurant, userText);
+    reply = useMock ? await mockAgent(session, restaurant, userText) : await llmAgent(session, restaurant, llmText);
   } catch (err) {
     console.error("handleTurn error:", err.message);
     reply = "Disculpa, tuve un inconveniente. ¿Puedes repetir tu pedido, por favor?";
   }
-  session.history.push({ role: "user", content: userText });
+  session.history.push({ role: "user", content: isLoc ? "[ubicación compartida]" : userText });
   session.history.push({ role: "assistant", content: reply });
   if (session.history.length > 20) session.history = session.history.slice(-20);
   return reply;
