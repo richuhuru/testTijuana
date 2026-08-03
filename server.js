@@ -161,14 +161,16 @@ wss.on("connection", (ws, request) => {
 
     if (msg.type === "setup") {
       sessionId = msg.callSid || msg.sessionId || sessionId;
-      getSession(sessionId, restaurant.id);
+      const s = getSession(sessionId, restaurant.id);
+      if (msg.from) s.phone = msg.from; // telefono del que llama
+      console.log(`[voz] llamada ${sessionId} de ${msg.from || "?"}`);
       return; // el saludo lo da welcomeGreeting en el TwiML
     }
 
     if (msg.type === "prompt") {
       const userText = msg.voicePrompt || msg.text || "";
       const session = getSession(sessionId, restaurant.id);
-      const reply = await handleTurn(session, restaurant, userText);
+      const reply = await handleTurn(session, restaurant, userText, "voice"); // canal voz
       ws.send(JSON.stringify({ type: "text", token: reply, last: true }));
       return;
     }

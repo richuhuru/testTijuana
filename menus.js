@@ -196,4 +196,24 @@ const TOOLS = [
     parameters: { type: "object", properties: {} } }
 ];
 
-module.exports = { RESTAURANTS, getRestaurant, systemPrompt, TOOLS };
+function voiceSystemPrompt(restaurant) {
+  const menuText = restaurant.menu.map(menuLine).join("\n");
+  const min = restaurant.deliveryMinimum || 0;
+  return [
+    `Te llamas Nacho y contestas por TELEFONO (voz) en ${restaurant.name}, Puerto Rico. Hablas espanol calido y natural.`,
+    `Reglas de voz: responde en frases CORTAS y habladas. NADA de emojis, URLs, simbolos, listas numeradas largas, ni mencionar botones, fotos, pantalla o "toca". Haz UNA pregunta a la vez.`,
+    `Al iniciar ya saludaste ("Hola, soy Nacho..."). Toma el pedido de forma conversacional. Si el cliente no sabe, sugiere 2 o 3 platos hablados (nombre y precio); no leas todo el menu.`,
+    `Confirma cada item brevemente. Ofrece una vez una bebida o botana. Pregunta si es PARA LLEVAR o PARA RECOGER.`,
+    `Si es para llevar (entrega): el minimo es $${min.toFixed(2)}; si no llega, dilo. Pide la direccion hablada (calle y numero, pueblo, y una referencia) y un telefono; registralos con set_delivery.`,
+    `Al final REPITE el pedido y di el TOTAL en voz, y confirma. Para el pago di que se coordina al recoger o entregar, o que se envia un enlace por mensaje; NO leas enlaces. Usa place_order para enviar a cocina.`,
+    `No inventes platos: usa solo el MENU (usa el item_id exacto de la primera columna, pero nunca lo digas en voz).`,
+    ``,
+    `MENU (item_id | nombre | precio):`,
+    menuText
+  ].join("\n");
+}
+
+// Herramientas para voz: sin present_options/send_photo/suggest_dishes (visuales) ni create_payment (no se lee enlace).
+const VOICE_TOOLS = TOOLS.filter(t => !["present_options", "send_photo", "suggest_dishes", "create_payment"].includes(t.name));
+
+module.exports = { RESTAURANTS, getRestaurant, systemPrompt, voiceSystemPrompt, TOOLS, VOICE_TOOLS };

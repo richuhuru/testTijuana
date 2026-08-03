@@ -2,7 +2,7 @@
 // Modo MOCK_LLM=1: heuristica sin claves (para la primera prueba en Render).
 // Modo real: OpenAI o Anthropic con function calling (tools).
 
-const { systemPrompt, TOOLS } = require("./menus");
+const { systemPrompt, voiceSystemPrompt, TOOLS, VOICE_TOOLS } = require("./menus");
 const { cartTotal, cartSummary } = require("./orders");
 const { createPaymentLink } = require("./payments");
 const { notifyKitchen } = require("./messaging");
@@ -214,9 +214,9 @@ function pickProvider() {
   return "openai";
 }
 
-async function runOpenAI(sys, messages, restaurant, session) {
+async function runOpenAI(sys, messages, restaurant, session, toolset) {
   const model = process.env.LLM_MODEL || "gpt-4o-mini";
-  const tools = TOOLS.map(t => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.parameters } }));
+  const tools = (toolset || TOOLS).map(t => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.parameters } }));
   const work = [{ role: "system", content: sys }, ...messages];
   for (let hop = 0; hop < 6; hop++) {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -242,9 +242,9 @@ async function runOpenAI(sys, messages, restaurant, session) {
   return "Disculpa, tuve un problema procesando tu pedido. ¿Puedes repetirlo?";
 }
 
-async function runAnthropic(sys, messages, restaurant, session) {
+async function runAnthropic(sys, messages, restaurant, session, toolset) {
   const model = process.env.LLM_MODEL || "claude-sonnet-5";
-  const tools = TOOLS.map(t => ({ name: t.name, description: t.description, input_schema: t.parameters }));
+  const tools = (toolset || TOOLS).map(t => ({ name: t.name, description: t.description, input_schema: t.parameters }));
   const work = messages.map(m => ({ role: m.role, content: m.content }));
   for (let hop = 0; hop < 6; hop++) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -270,27 +270,42 @@ async function runAnthropic(sys, messages, restaurant, session) {
   return "Disculpa, tuve un problema procesando tu pedido. ¿Puedes repetirlo?";
 }
 
-async function llmAgent(session, restaurant, userText) {
-  const sys = systemPrompt(restaurant);
+async function llmAgent(session, restaurant, userText, channel) {
+  const isVoice = channel === "voice";
+  const sys = isVoice ? voiceSystemPrompt(restaurant) : systemPrompt(restaurant);
+  const toolset = isVoice ? VOICE_TOOLS : TOOLS;
   const messages = [...session.history, { role: "user", content: userText }];
   const provider = pickProvider();
   return provider === "anthropic"
-    ? runAnthropic(sys, messages, restaurant, session)
-    : runOpenAI(sys, messages, restaurant, session);
+    ? runAnthropic(sys, messages, restaurant, session, toolset)
+    : runOpenAI(sys, messages, restaurant, session, toolset);
+}
+
+// Limpia el texto para TTS (voz): sin emojis, URLs, markdown ni saltos de linea excesivos.
+function sanitizeForVoice(t) {
+  return String(t)
+    .replace(/https?:\/\/\S+/g, "el enlace")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, "")
+    .replace(/[*_`#]/g, "")
+    .replace(/\s*\n+\s*/g, ". ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 // ---------- Entrada publica ----------
-async function handleTurn(session, restaurant, userText) {
+async function handleTurn(session, restaurant, userText, channel) {
   const useMock = process.env.MOCK_LLM === "1" || !process.env.LLM_API_KEY;
   const isLoc = userText === "__LOCATION__";
   const llmText = isLoc ? "He compartido mi ubicación por WhatsApp (pin GPS)." : userText;
   let reply;
   try {
-    reply = useMock ? await mockAgent(session, restaurant, userText) : await llmAgent(session, restaurant, llmText);
+    reply = useMock ? await mockAgent(session, restaurant, userText) : await llmAgent(session, restaurant, llmText, channel);
   } catch (err) {
     console.error("handleTurn error:", err.message);
-    reply = "Disculpa, tuve un inconveniente. ¿Puedes repetir tu pedido, por favor?";
+    reply = "Disculpa, tuve un inconveniente. ¿Puedes repetir, por favor?";
   }
+  if (channel === "voice") reply = sanitizeForVoice(reply);
   session.history.push({ role: "user", content: isLoc ? "[ubicación compartida]" : userText });
   session.history.push({ role: "assistant", content: reply });
   if (session.history.length > 20) session.history = session.history.slice(-20);
