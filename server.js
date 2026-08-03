@@ -34,10 +34,17 @@ app.get("/twiml/:restaurant", (req, res) => {
   const restaurant = getRestaurant(req.params.restaurant);
   const host = req.headers["x-forwarded-host"] || req.headers.host;
   const wss = `wss://${host}/relay?restaurant=${restaurant.id}`;
+  // Voz mexicana (Amazon Polly). Configurable por env:
+  //  VOICE_TTS_PROVIDER=Amazon | Google
+  //  VOICE_NAME=Andres-Neural (hombre, es-MX) | Mia-Neural (mujer, es-MX)
+  //  VOICE_LANG=es-MX
+  const ttsProvider = process.env.VOICE_TTS_PROVIDER || "Amazon";
+  const voice = process.env.VOICE_NAME || "Andres-Neural";
+  const lang = process.env.VOICE_LANG || "es-MX";
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <ConversationRelay url="${xmlEscape(wss)}" welcomeGreeting="${xmlEscape(restaurant.greeting)}" language="es-MX" ttsProvider="Google" />
+    <ConversationRelay url="${xmlEscape(wss)}" welcomeGreeting="${xmlEscape(restaurant.greeting)}" language="${xmlEscape(lang)}" ttsProvider="${xmlEscape(ttsProvider)}" voice="${xmlEscape(voice)}" transcriptionLanguage="${xmlEscape(lang)}" />
   </Connect>
 </Response>`;
   res.type("text/xml").send(twiml);
