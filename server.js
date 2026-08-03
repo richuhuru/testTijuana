@@ -43,14 +43,17 @@ app.get("/twiml/:restaurant", (req, res) => {
   res.type("text/xml").send(twiml);
 });
 
-// --- WhatsApp webhook ---
-app.post("/whatsapp", async (req, res) => {
+// --- Webhook de mensajes entrantes (WhatsApp y SMS usan el mismo handler) ---
+async function inboundHandler(req, res) {
   const from = req.body.From || "unknown";
   const body = (req.body.Body || "").trim();
+  const isWhatsApp = from.startsWith("whatsapp:");        // SMS = numero sin prefijo
+  const useInteractive = isWhatsApp && sender.ready();     // botones/listas: solo WhatsApp
+  console.log(`[in] From=${from} channel=${isWhatsApp ? "wa" : "sms"} Body=${JSON.stringify(body)}`);
   const restaurant = getRestaurant(process.env.RESTAURANT_ID);
   const session = getSession(from, restaurant.id);
 
-  // Ubicacion compartida por WhatsApp (Adjuntar -> Ubicacion)
+  // Ubicacion compartida por WhatsApp (Adjuntar -> Ubicacion). En SMS no aplica.
   const hasLoc = req.body.Latitude && req.body.Longitude;
   if (hasLoc) {
     session.geo = { lat: req.body.Latitude, lng: req.body.Longitude, address: req.body.Address || "" };
@@ -61,7 +64,7 @@ app.post("/whatsapp", async (req, res) => {
   const nb = (body || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   if (!hasLoc && /^(ver\s+(el\s+)?menu|menu|ver\s+(la\s+)?carta|carta|ver\s+todo\s+el\s+menu)$/.test(nb)) {
     const link = "Aquí tienes nuestro menú completo 👉 https://www.tijuanasbarandgrill.com/es/menu/\n\nCuando decidas, dime el nombre del plato y lo agrego. 😊";
-    if (sender.ready()) {
+    if (useInteractive) {
       res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
       sender.sendText(from, link).catch(e => console.error("menu link send:", e.message));
     } else {
@@ -71,26 +74,24 @@ app.post("/whatsapp", async (req, res) => {
   }
 
   const reply = await handleTurn(session, restaurant, inbound);
-
   const media = session.pendingMedia; session.pendingMedia = null;
   const opts = session.pendingOptions; session.pendingOptions = null;
 
-  if (sender.ready()) {
-    // Modo interactivo: responder vacio y enviar por REST (permite botones tactiles)
+  // Opciones por defecto (minimo esfuerzo): si el pedido esta vacio y el agente no propuso opciones.
+  let eff = opts;
+  // Solo en el saludo inicial (primer turno) usamos las categorias fijas; luego Nacho da opciones contextuales.
+  if ((!eff || !eff.options || !eff.options.length) && session.cart.length === 0 && !session.placed && session.history.length <= 2) {
+    eff = { options: ["Ver menú", "Especialidades", "Bebidas"] };
+  }
+
+  if (useInteractive) {
+    // WhatsApp interactivo: responder vacio y enviar por REST (botones tactiles)
     res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
     (async () => {
       try {
-        // Por defecto (minimo esfuerzo): si el pedido esta vacio y el agente no propuso opciones,
-        // ofrece las categorias como lista tocable, sin que el cliente las pida.
-        let eff = opts;
-        if ((!eff || !eff.options || !eff.options.length) && session.cart.length === 0 && !session.placed) {
-          eff = { options: ["Ver menú", "Especialidades", "Bebidas"] };
-        }
         if (eff && eff.options && eff.options.length >= 1 && eff.options.length <= 3) {
           await sender.sendButtons(from, reply, eff.options.slice(0, 3));
         } else {
-          // Mas de 3 opciones: enviar como texto (el reply ya las lista numeradas).
-          // Las listas (list-picker) no son fiables en el sandbox, por eso no se usan.
           await sender.sendText(from, reply, media);
         }
       } catch (e) {
@@ -101,11 +102,19 @@ app.post("/whatsapp", async (req, res) => {
     return;
   }
 
+  // SMS (o WhatsApp sin INTERACTIVE): TwiML de texto + MMS. Opciones como texto numerado.
+  let text = reply;
+  if (eff && eff.options && eff.options.length) {
+    text += "\n" + eff.options.map((o, i) => `${i + 1}) ${o}`).join("   ");
+  }
   const mediaTag = media ? `<Media>${xmlEscape(media)}</Media>` : "";
   res.type("text/xml").send(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Message><Body>${xmlEscape(reply)}</Body>${mediaTag}</Message></Response>`
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Message><Body>${xmlEscape(text)}</Body>${mediaTag}</Message></Response>`
   );
-});
+}
+
+app.post("/whatsapp", inboundHandler);
+app.post("/sms", inboundHandler);
 
 // --- Stripe webhook (opcional) ---
 app.post("/stripe-webhook", (req, res) => {
