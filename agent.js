@@ -2,7 +2,7 @@
 // Modo MOCK_LLM=1: heuristica sin claves (para la primera prueba en Render).
 // Modo real: OpenAI o Anthropic con function calling (tools).
 
-const { systemPrompt, voiceSystemPrompt, TOOLS, VOICE_TOOLS } = require("./menus");
+const { systemPrompt, voiceSystemPrompt, TOOLS, VOICE_TOOLS, itemImage } = require("./menus");
 const { cartTotal, cartSummary } = require("./orders");
 const { createPaymentLink } = require("./payments");
 const { notifyKitchen } = require("./messaging");
@@ -55,8 +55,9 @@ async function executeTool(session, restaurant, name, args) {
     }
     case "send_photo": {
       const it = restaurant.menu.find(m => m.id === args.item_id);
-      if (!it || !it.image) return { ok: false, error: "Ese plato no tiene foto." };
-      session.pendingMedia = it.image;
+      const img = it ? itemImage(it) : null;
+      if (!img) return { ok: false, error: "Ese plato no tiene foto." };
+      session.pendingMedia = img;
       return { ok: true, sent: it.name };
     }
     case "present_options": {
@@ -67,7 +68,7 @@ async function executeTool(session, restaurant, name, args) {
     case "suggest_dishes": {
       const ids = Array.isArray(args.item_ids) ? args.item_ids.slice(0, 3) : [];
       const items = ids.map(id => restaurant.menu.find(m => m.id === id)).filter(Boolean)
-        .map(it => ({ item_id: it.id, name: it.name, price: it.price, image: it.image || null }));
+        .map(it => ({ item_id: it.id, name: it.name, price: it.price, image: itemImage(it) }));
       session.pendingSuggestions = { intro: args.intro || "", items };
       return { ok: true, count: items.length };
     }

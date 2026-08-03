@@ -86,17 +86,14 @@ async function inboundHandler(req, res) {
 
   const sugg = session.pendingSuggestions; session.pendingSuggestions = null;
 
-  // Opciones por defecto (minimo esfuerzo): si el pedido esta vacio y el agente no propuso opciones.
-  let eff = opts;
-  // Solo en el saludo inicial (primer turno) usamos las categorias fijas; luego Nacho da opciones contextuales.
-  if ((!eff || !eff.options || !eff.options.length) && !sugg && session.cart.length === 0 && !session.placed && session.history.length <= 2) {
-    eff = { options: ["Ver menú", "Especialidades", "Bebidas"] };
-  }
+  // Guia breve cuando el pedido esta vacio (saludo o inicio). Palabras, no numeros, para que Nacho las entienda.
+  const emptyCart = session.cart.length === 0 && !session.placed;
+  const guidance = "Escríbeme tu pedido, o pon *Menú* para ver la carta. También puedes decir: Especialidades, Tacos o Bebidas.";
 
-  console.log(`[out] ch=${isWhatsApp ? "wa" : "sms"} interactive=${useInteractive} ready=${sender.ready()} sugg=${sugg && sugg.items ? sugg.items.length : 0} opts=${eff && eff.options ? eff.options.length : 0} media=${media ? 1 : 0}`);
+  console.log(`[out] ch=${isWhatsApp ? "wa" : "sms"} interactive=${useInteractive} sugg=${sugg && sugg.items ? sugg.items.length : 0} media=${media ? 1 : 0} empty=${emptyCart}`);
 
   if (useInteractive) {
-    // WhatsApp interactivo: responder vacio y enviar por REST (botones tactiles)
+    // WhatsApp: enviar por REST. Opciones = texto (los botones quick-reply no renderizan sin plantilla aprobada).
     res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
     (async () => {
       try {
@@ -105,15 +102,14 @@ async function inboundHandler(req, res) {
           for (const it of sugg.items) {
             await sender.sendText(from, `${it.name} — $${it.price.toFixed(2)}`, it.image || undefined);
           }
-          const names = sugg.items.map(it => it.name).slice(0, 3);
-          if (names.length) await sender.sendButtons(from, "¿Cuál te preparo? 😋", names);
-          console.log(`[out] OK sugerencias enviadas (${sugg.items.length} fotos)`);
-        } else if (eff && eff.options && eff.options.length >= 1 && eff.options.length <= 3) {
-          await sender.sendButtons(from, reply, eff.options.slice(0, 3));
-          console.log(`[out] OK botones enviados (${eff.options.length})`);
+          const names = sugg.items.map(it => it.name);
+          await sender.sendText(from, `¿Cuál te preparo? ${names.join(", ")}.`);
+          console.log(`[out] OK ${sugg.items.length} sugerencias con foto`);
         } else {
-          await sender.sendText(from, reply, media);
-          console.log(`[out] OK texto enviado media=${media ? 1 : 0}`);
+          let text = reply || "";
+          if (emptyCart) text += `\n\n${guidance}`;
+          await sender.sendText(from, text, media);
+          console.log(`[out] OK texto media=${media ? 1 : 0}`);
         }
       } catch (e) {
         console.error("interactive send error:", e.message);
@@ -123,14 +119,14 @@ async function inboundHandler(req, res) {
     return;
   }
 
-  // SMS (o WhatsApp sin INTERACTIVE): TwiML de texto + MMS. Opciones como texto numerado.
-  let text = reply;
+  // SMS (o WhatsApp sin INTERACTIVE): TwiML texto + MMS.
+  let text = reply || "";
   let mmedia = media;
   if (sugg && sugg.items && sugg.items.length) {
     text += "\n" + sugg.items.map((it, i) => `${i + 1}) ${it.name} — $${it.price.toFixed(2)}`).join("\n");
-    if (!mmedia) mmedia = sugg.items[0].image || null; // al menos la primera foto como MMS
-  } else if (eff && eff.options && eff.options.length) {
-    text += "\n" + eff.options.map((o, i) => `${i + 1}) ${o}`).join("   ");
+    if (!mmedia) mmedia = sugg.items[0].image || null;
+  } else if (emptyCart) {
+    text += `\n\n${guidance}`;
   }
   const mediaTag = mmedia ? `<Media>${xmlEscape(mmedia)}</Media>` : "";
   res.type("text/xml").send(

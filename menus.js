@@ -134,6 +134,27 @@ const IMAGES = {
 };
 Object.values(RESTAURANTS).forEach(r => r.menu.forEach(it => { if (IMAGES[it.id]) it.image = IMG_BASE + IMAGES[it.id]; }));
 
+// Imagenes genericas de respaldo por categoria (Wikimedia Commons, descargables por Twilio).
+const IMGW = "https://commons.wikimedia.org/wiki/Special:FilePath/";
+const CATEGORY_IMAGE = {
+  sopas:          IMGW + "Sopa_de_tortilla.jpg?width=800",
+  ensaladas:      IMGW + "Salad_platter.jpg?width=800",
+  botanas:        IMGW + "Nachos.jpg?width=800",
+  tacos:          IMGW + "Tacos_de_pescado.jpg?width=800",
+  quesadillas:    IMGW + "Quesadilla.jpg?width=800",
+  burritos:       IMGW + "Burrito.jpg?width=800",
+  enchiladas:     IMGW + "Enchiladas.jpg?width=800",
+  fajitas:        IMGW + "Burrito.jpg?width=800",
+  especialidades: IMGW + "Enchiladas.jpg?width=800",
+  chaparritos:    IMGW + "Tacos_de_pescado.jpg?width=800",
+  bebidas:        IMGW + "Glass_of_cola.jpg?width=800",
+  postres:        IMGW + "Churros.jpg?width=800"
+};
+// Imagen de un item: la especifica del sitio si existe, si no la generica de su categoria.
+function itemImage(it) {
+  return (it && it.image) ? it.image : (it && CATEGORY_IMAGE[it.category]) || null;
+}
+
 function getRestaurant(id) {
   return RESTAURANTS[(id || "").toLowerCase()] || RESTAURANTS.tijuanas;
 }
@@ -156,7 +177,7 @@ function systemPrompt(restaurant) {
     `pero NUNCA muestres el item_id ni codigos internos al cliente: menciona solo el nombre del plato.`,
     `No uses formato Markdown ni enlaces entre corchetes; escribe la URL de pago tal cual, en texto plano.`,
     `Saluda solo la primera vez; no repitas el saludo en cada mensaje.`,
-    `Minimo esfuerzo del cliente: en CASI CADA respuesta ofrece 2-3 botones tocables con present_options, y que sean CONTEXTUALES a lo que el cliente acaba de decir (no siempre los mismos). Ejemplos: tras agregar un plato -> [\"Agregar bebida\", \"Otro plato\", \"Confirmar\"]; al preguntar el tipo -> [\"Para llevar\", \"Para recoger\"]; tras elegir una categoria -> los 2-3 platos mas pedidos de ESA categoria; para si/no -> [\"Si\", \"No\"]. Botones = maximo 3, textos <=20 caracteres. Si necesitas mostrar una lista larga (ej. todos los platos de una categoria), ponla NUMERADA en el texto (1,2,3,4...) y ademas ofrece 2-3 botones utiles (ej. \"Confirmar\", \"Ver menu\"). Si el cliente toca un boton o escribe un numero, interpreta normal.`,
+    `Minimo esfuerzo del cliente: ofrece las opciones ESCRITAS en tu texto, cortas y claras (ej. tras agregar un plato: \"¿Deseas una bebida, otro plato, o confirmo?\"; al preguntar el tipo: \"¿Para llevar o para recoger?\"). Si listas varios platos, numeralos (1,2,3...) para que respondan con el numero o el nombre. Cuando RECOMIENDES platos usa suggest_dishes (llegan con foto). No dependas de botones tactiles.`,
     `Cuando RECOMIENDES o SUGIERAS platos (upsell, especialidades, destacados, o al mostrar opciones de una categoria), usa suggest_dishes con 1 a 3 item_ids (preferiblemente con (foto)) para que cada sugerencia llegue con su IMAGEN y precio, y el cliente pueda tocar para agregar. Usa esto en vez de solo texto al promover platos.`,
     `Si el cliente pide ver una sola foto puntual, usa send_photo con su item_id (maximo 1 por mensaje).`,
     `Antes de cobrar, pregunta SIEMPRE si la orden es 'para llevar' o 'para recoger' y registra la respuesta con set_fulfillment.`,
@@ -217,4 +238,4 @@ function voiceSystemPrompt(restaurant) {
 // Herramientas para voz: sin present_options/send_photo/suggest_dishes (visuales) ni create_payment (no se lee enlace).
 const VOICE_TOOLS = TOOLS.filter(t => !["present_options", "send_photo", "suggest_dishes", "create_payment"].includes(t.name));
 
-module.exports = { RESTAURANTS, getRestaurant, systemPrompt, voiceSystemPrompt, TOOLS, VOICE_TOOLS };
+module.exports = { RESTAURANTS, getRestaurant, systemPrompt, voiceSystemPrompt, TOOLS, VOICE_TOOLS, CATEGORY_IMAGE, itemImage };
