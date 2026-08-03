@@ -9,7 +9,8 @@ const RESTAURANTS = {
     name: "Tijuana's Bar & Grill",
     currency: "usd",
     deliveryMinimum: 25,
-    greeting: "¡Hola! Soy Nacho, de Tijuana's Bar & Grill. ¿Cuál es su orden?",
+    greeting: "¡Hola! Soy Nacho, gracias por comunicarse con Tijuana's de Los Colobos. ¿Qué le puedo ofrecer hoy?",
+    voiceGreeting: "¡Hola! Soy Nacho, gracias por comunicarse con Tijuana's de Los Colobos. ¿Qué le puedo ofrecer hoy?",
     upsell: {
       categories: ["botanas", "bebidas"],
       prompt: "¿Te agrego una bebida o una botana para empezar?"
@@ -148,7 +149,7 @@ function systemPrompt(restaurant) {
     : `Ofrece SIEMPRE bebida y postre (upsell) una sola vez.`;
   return [
     `Te llamas Nacho y eres el asistente de ordenes de ${restaurant.name} en Puerto Rico. Hablas espanol, calido y breve.`,
-    `Al saludar por primera vez preséntate así: "Hola, soy Nacho, ¿cuál es su orden?" (el sistema mostrara solo botones para empezar). Luego toma el pedido y confirma cada item. ${upsell}`,
+    `Al saludar por primera vez preséntate así: "Hola, soy Nacho, gracias por comunicarse con Tijuana\'s de Los Colobos. ¿Qué le puedo ofrecer hoy?" (el sistema mostrara solo botones para empezar). Luego toma el pedido y confirma cada item. ${upsell}`,
     `Calcula el total y pide confirmacion. Usa las herramientas para modificar el carrito y cobrar.`,
     `Las cantidades del cliente se refieren al numero de ORDENES del item, no a piezas. Varios items ya vienen en cantidad fija (ej. "Tacos al Pastor (3)" es UNA orden de 3 tacos, "Charras (2 tacos)" trae 2). Si el cliente dice un numero que coincide con la cantidad incluida en el nombre (ej. "tres tacos al pastor"), asume 1 orden; si de verdad quiere varias ordenes, que lo aclare. Ante la duda, confirma.`,
     `No inventes platos: usa solo el MENU. Internamente usa el item_id exacto de la primera columna,`,

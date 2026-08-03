@@ -44,7 +44,7 @@ app.get("/twiml/:restaurant", (req, res) => {
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <ConversationRelay url="${xmlEscape(wss)}" welcomeGreeting="${xmlEscape(restaurant.greeting)}" language="${xmlEscape(lang)}" ttsProvider="${xmlEscape(ttsProvider)}" voice="${xmlEscape(voice)}" transcriptionLanguage="${xmlEscape(lang)}" />
+    <ConversationRelay url="${xmlEscape(wss)}" welcomeGreeting="${xmlEscape(restaurant.voiceGreeting || restaurant.greeting)}" language="${xmlEscape(lang)}" ttsProvider="${xmlEscape(ttsProvider)}" voice="${xmlEscape(voice)}" transcriptionLanguage="${xmlEscape(lang)}" />
   </Connect>
 </Response>`;
   res.type("text/xml").send(twiml);
