@@ -93,6 +93,8 @@ async function inboundHandler(req, res) {
     eff = { options: ["Ver menú", "Especialidades", "Bebidas"] };
   }
 
+  console.log(`[out] ch=${isWhatsApp ? "wa" : "sms"} interactive=${useInteractive} ready=${sender.ready()} sugg=${sugg && sugg.items ? sugg.items.length : 0} opts=${eff && eff.options ? eff.options.length : 0} media=${media ? 1 : 0}`);
+
   if (useInteractive) {
     // WhatsApp interactivo: responder vacio y enviar por REST (botones tactiles)
     res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
@@ -105,10 +107,13 @@ async function inboundHandler(req, res) {
           }
           const names = sugg.items.map(it => it.name).slice(0, 3);
           if (names.length) await sender.sendButtons(from, "¿Cuál te preparo? 😋", names);
+          console.log(`[out] OK sugerencias enviadas (${sugg.items.length} fotos)`);
         } else if (eff && eff.options && eff.options.length >= 1 && eff.options.length <= 3) {
           await sender.sendButtons(from, reply, eff.options.slice(0, 3));
+          console.log(`[out] OK botones enviados (${eff.options.length})`);
         } else {
           await sender.sendText(from, reply, media);
+          console.log(`[out] OK texto enviado media=${media ? 1 : 0}`);
         }
       } catch (e) {
         console.error("interactive send error:", e.message);
