@@ -15,6 +15,7 @@ function getSession(sessionId, restaurantId) {
       fulfillment: null,   // 'para llevar' | 'para recoger'
       pendingMedia: null,  // URL de imagen a enviar en la proxima respuesta
       pendingOptions: null,// { prompt, options[] } para botones tactiles
+      pendingSuggestions: null, // { intro, items[] } sugerencias de platos con foto
       address: null,       // referencia/direccion en texto (si es para llevar)
       geo: null,           // { lat, lng, address } del pin de WhatsApp
       phone: null,         // telefono de contacto

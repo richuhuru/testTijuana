@@ -64,6 +64,13 @@ async function executeTool(session, restaurant, name, args) {
       session.pendingOptions = { prompt: args.prompt || "", options };
       return { ok: true, options };
     }
+    case "suggest_dishes": {
+      const ids = Array.isArray(args.item_ids) ? args.item_ids.slice(0, 3) : [];
+      const items = ids.map(id => restaurant.menu.find(m => m.id === id)).filter(Boolean)
+        .map(it => ({ item_id: it.id, name: it.name, price: it.price, image: it.image || null }));
+      session.pendingSuggestions = { intro: args.intro || "", items };
+      return { ok: true, count: items.length };
+    }
     case "set_address": {
       session.address = (args.address || "").trim();
       session.awaitingAddress = false;

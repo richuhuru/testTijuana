@@ -77,10 +77,12 @@ async function inboundHandler(req, res) {
   const media = session.pendingMedia; session.pendingMedia = null;
   const opts = session.pendingOptions; session.pendingOptions = null;
 
+  const sugg = session.pendingSuggestions; session.pendingSuggestions = null;
+
   // Opciones por defecto (minimo esfuerzo): si el pedido esta vacio y el agente no propuso opciones.
   let eff = opts;
   // Solo en el saludo inicial (primer turno) usamos las categorias fijas; luego Nacho da opciones contextuales.
-  if ((!eff || !eff.options || !eff.options.length) && session.cart.length === 0 && !session.placed && session.history.length <= 2) {
+  if ((!eff || !eff.options || !eff.options.length) && !sugg && session.cart.length === 0 && !session.placed && session.history.length <= 2) {
     eff = { options: ["Ver menú", "Especialidades", "Bebidas"] };
   }
 
@@ -89,7 +91,14 @@ async function inboundHandler(req, res) {
     res.type("text/xml").send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
     (async () => {
       try {
-        if (eff && eff.options && eff.options.length >= 1 && eff.options.length <= 3) {
+        if (sugg && sugg.items && sugg.items.length) {
+          if (reply && reply.trim()) await sender.sendText(from, reply);
+          for (const it of sugg.items) {
+            await sender.sendText(from, `${it.name} — $${it.price.toFixed(2)}`, it.image || undefined);
+          }
+          const names = sugg.items.map(it => it.name).slice(0, 3);
+          if (names.length) await sender.sendButtons(from, "¿Cuál te preparo? 😋", names);
+        } else if (eff && eff.options && eff.options.length >= 1 && eff.options.length <= 3) {
           await sender.sendButtons(from, reply, eff.options.slice(0, 3));
         } else {
           await sender.sendText(from, reply, media);
@@ -104,10 +113,14 @@ async function inboundHandler(req, res) {
 
   // SMS (o WhatsApp sin INTERACTIVE): TwiML de texto + MMS. Opciones como texto numerado.
   let text = reply;
-  if (eff && eff.options && eff.options.length) {
+  let mmedia = media;
+  if (sugg && sugg.items && sugg.items.length) {
+    text += "\n" + sugg.items.map((it, i) => `${i + 1}) ${it.name} — $${it.price.toFixed(2)}`).join("\n");
+    if (!mmedia) mmedia = sugg.items[0].image || null; // al menos la primera foto como MMS
+  } else if (eff && eff.options && eff.options.length) {
     text += "\n" + eff.options.map((o, i) => `${i + 1}) ${o}`).join("   ");
   }
-  const mediaTag = media ? `<Media>${xmlEscape(media)}</Media>` : "";
+  const mediaTag = mmedia ? `<Media>${xmlEscape(mmedia)}</Media>` : "";
   res.type("text/xml").send(
     `<?xml version="1.0" encoding="UTF-8"?><Response><Message><Body>${xmlEscape(text)}</Body>${mediaTag}</Message></Response>`
   );
